@@ -1,42 +1,61 @@
 import { NextResponse } from "next/server";
+import axios from "axios";
+import FormData from "form-data";
 
-const baseUrl = "https://api.stability.ai/v1/generate"; // Example StabilityAI API endpoint
+const baseUrl = "https://api.stability.ai/v2beta/stable-image/control";
 const apiKey = "YOUR_STABILITY_AI_API_KEY"; // Replace with your StabilityAI API key
 
 // Handler for GET request to fetch designs (optional, if you want to fetch existing designs)
 export async function GET() {
-  // You can implement logic to fetch and return designs if you have a storage solution
   return NextResponse.json({ message: "Fetching designs is not implemented." });
 }
 
 // Handler for POST request to create a new design
 export async function POST(request) {
   try {
-    const { prompt } = await request.json();
+    const contentType = request.headers.get("content-type");
+    let prompt, sketch, response;
 
-    // Call the StabilityAI API to generate an image
-    const response = await fetch(baseUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({ prompt, num_images: 1 }),
-    });
+    if (contentType.includes("application/json")) {
+      // Handle text prompt
+      ({ prompt } = await request.json());
+      response = await axios.post(
+        `${baseUrl}/text`,
+        { prompt, num_images: 1 },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+        }
+      );
+    } else if (contentType.includes("multipart/form-data")) {
+      // Handle sketch upload
+      const formData = new FormData();
+      formData.append("sketch", request.body);
+      formData.append("control_strength", 0.6);
+      formData.append("output_format", "webp");
 
-    if (!response.ok) {
-      throw new Error("Failed to create design");
+      response = await axios.postForm(`${baseUrl}/sketch`, formData, {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "image/*",
+        },
+      });
+    } else {
+      throw new Error("Unsupported content type");
     }
 
-    const data = await response.json();
-    const image = data.images[0].data; // Assuming the response includes an image data array
+    if (response.status !== 200) {
+      throw new Error(`Failed to create design: ${response.status}`);
+    }
 
-    // Generate a random design ID (replace this with your ID generation logic)
+    const data = await response.data;
+    const image = data.images ? data.images[0].data : response.data;
     const designId = Math.floor(Math.random() * 10000);
     const design = {
       _id: designId.toString(),
-      image: { type: "image/jpeg", data: image },
-      image_hash: "", // Optionally, calculate a hash for the image
+      image: { type: "image/webp", data: image },
       designId,
       prompt,
     };
