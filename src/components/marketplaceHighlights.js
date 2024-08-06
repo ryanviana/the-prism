@@ -2,14 +2,13 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import DesignCard from "@/components/designCard";
+import DesignCard from "./designCard";
 import { ArrowRightIcon } from "@heroicons/react/24/outline";
 
 const MarketplaceHighlights = () => {
   const [designs, setDesigns] = useState([]);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
-  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const fetchDesigns = async () => {
@@ -23,7 +22,6 @@ const MarketplaceHighlights = () => {
         setDesigns(fetchedDesigns.reverse().slice(0, 5));
       } catch (error) {
         console.error("Failed to fetch designs:", error);
-        setHasError(true);
       }
       setIsLoading(false); // End loading
     };
@@ -49,15 +47,13 @@ const MarketplaceHighlights = () => {
   return (
     <div className="flex flex-col flex-grow py-20 gradient-bg-marketplacehl">
       <div className="flex flex-grow flex-col items-start justify-start mt-20">
-        <h1 className="text-3xl sm:text-5xl text-gradient">
+        <h1 className="text-3xl sm:text-5xl text-gradient bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
           Latest Collections
         </h1>
         <div className="flex items-center justify-between w-full my-8">
           {isLoading ? (
             <SkeletonPlaceholder />
-          ) : hasError ? (
-            <p className="text-red-500">Failed to load collections.</p>
-          ) : designs.length > 0 ? (
+          ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 justify-center items-center">
                 {designs.map((design) => (
@@ -85,8 +81,6 @@ const MarketplaceHighlights = () => {
                 </button>
               </div>
             </>
-          ) : (
-            <p>No collections available.</p>
           )}
         </div>
       </div>
