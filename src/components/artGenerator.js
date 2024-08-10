@@ -1,9 +1,10 @@
-import React, { useState } from "react";
 import Image from "next/image";
+import { useState } from "react";
 
 const ArtGenerator = () => {
   const [option, setOption] = useState("text"); // "text" or "sketch"
   const [prompt, setPrompt] = useState("");
+  const [auxPrompt, setAuxPrompt] = useState(""); // Auxiliary prompt for sketches
   const [sketch, setSketch] = useState(null);
   const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -12,6 +13,7 @@ const ArtGenerator = () => {
   const handleOptionChange = (newOption) => {
     setOption(newOption);
     setPrompt("");
+    setAuxPrompt("");
     setSketch(null);
     setShowResult(false);
   };
@@ -21,43 +23,79 @@ const ArtGenerator = () => {
     setShowResult(true);
 
     try {
-      let body;
+      let response;
+
       if (option === "text") {
-        body = JSON.stringify({ prompt });
+        response = await fetch("/api/txt-to-img", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt }),
+        });
       } else if (option === "sketch") {
         const formData = new FormData();
-        formData.append("sketch", sketch);
-        body = formData;
+        formData.append("file", sketch);
+        formData.append("prompt", auxPrompt);
+
+        let uploadResponse;
+        try {
+          uploadResponse = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+        } catch (uploadError) {
+          console.error("Upload request failed:", uploadError);
+          throw uploadError;
+        }
+
+        console.log("Upload response received:", uploadResponse);
+
+        if (!uploadResponse.ok) {
+          throw new Error(
+            `Upload failed with status: ${uploadResponse.status}`
+          );
+        }
+
+        let uploadData;
+        try {
+          uploadData = await uploadResponse.json();
+        } catch (parseError) {
+          console.error("Failed to parse upload response as JSON:", parseError);
+          throw parseError;
+        }
+
+        console.log("LOG: Uploaded sketch file:", uploadData);
+
+        const bodySketch = JSON.stringify({
+          prompt: auxPrompt,
+          sketchPath: uploadData.filepath,
+        });
+
+        try {
+          response = await fetch("/api/sketch-to-img", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: bodySketch,
+          });
+        } catch (fetchError) {
+          console.error("Sketch-to-img request failed:", fetchError);
+          throw fetchError;
+        }
       }
 
-      const createResponse = await fetch("/api/designs", {
-        method: "POST",
-        headers:
-          option === "text" ? { "Content-Type": "application/json" } : {},
-        body,
-      });
-
-      if (!createResponse.ok) {
+      if (!response.ok) {
         throw new Error("Failed to create design");
       }
 
-      const fetchResponse = await fetch("/api/designs");
-      if (!fetchResponse.ok) {
-        throw new Error("Failed to fetch designs");
-      }
+      const data = await response.json();
 
-      const designs = await fetchResponse.json();
-      const newLatestDesign = designs[designs.length - 1];
-      setLatestDesign(newLatestDesign);
+      setLatestDesign({
+        image: data.artifacts[0].base64, // Assuming backend returns this key
+      });
     } catch (error) {
       console.error("Failed to create or fetch designs", error);
     }
 
     setLoading(false);
-  };
-
-  const imageToBase64 = (imageData) => {
-    return btoa(String.fromCharCode(...new Uint8Array(imageData)));
   };
 
   const LoadingPlaceholder = () => (
@@ -67,7 +105,8 @@ const ArtGenerator = () => {
   );
 
   const handleSketchUpload = (event) => {
-    setSketch(event.target.files[0]);
+    const file = event.target.files[0];
+    setSketch(file);
     setShowResult(false);
   };
 
@@ -112,7 +151,7 @@ const ArtGenerator = () => {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center w-full">
+            <div className="flex flex-col items-center w-full gap-4">
               <input
                 type="file"
                 accept="image/*"
@@ -120,10 +159,20 @@ const ArtGenerator = () => {
                 className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               />
               {sketch && (
-                <div className="mt-4 text-gray-400">
+                <div className="text-gray-400">
                   Selected file: {sketch.name}
                 </div>
               )}
+              <div className="flex flex-row items-center gap-1.5 w-full">
+                <div className="flex border-2 border-base-300 blue-glassmorphism rounded-full w-full">
+                  <input
+                    className="input input-ghost border-none focus:outline-none focus:ring-0 h-[2.2rem] min-h-[2.2rem] px-4 w-full font-medium text-gray-400 bg-transparent placeholder:text-gray-400"
+                    placeholder="Enter an auxiliary prompt"
+                    onChange={(e) => setAuxPrompt(e.target.value)}
+                    value={auxPrompt}
+                  />
+                </div>
+              </div>
             </div>
           )}
           <div className="flex justify-center mt-4">
@@ -146,9 +195,7 @@ const ArtGenerator = () => {
               <div className="card-body p-6">
                 <figure>
                   <Image
-                    src={`data:image/jpeg;base64,${imageToBase64(
-                      latestDesign.image.data
-                    )}`}
+                    src={`data:image/png;base64,${latestDesign.image}`} // Ensure the correct image format
                     alt="Generated Art"
                     width={200}
                     height={200}

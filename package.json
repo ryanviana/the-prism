@@ -10,8 +10,13 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.1.5",
+    "@next/env": "^14.2.5",
     "autoprefixer": "^10.4.20",
+    "axios": "^1.7.3",
+    "form-data": "^4.0.0",
+    "formidable": "^3.5.1",
     "next": "^14.2.5",
+    "node-fetch": "^2.7.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
