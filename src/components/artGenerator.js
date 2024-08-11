@@ -26,60 +26,18 @@ const ArtGenerator = () => {
       let response;
 
       if (option === "text") {
-        response = await fetch("/api/txt-to-img", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        });
-      } else if (option === "sketch") {
-        const formData = new FormData();
-        formData.append("file", sketch);
-        formData.append("prompt", auxPrompt);
-
-        let uploadResponse;
-        try {
-          uploadResponse = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-        } catch (uploadError) {
-          console.error("Upload request failed:", uploadError);
-          throw uploadError;
-        }
-
-        console.log("Upload response received:", uploadResponse);
-
-        if (!uploadResponse.ok) {
-          throw new Error(
-            `Upload failed with status: ${uploadResponse.status}`
-          );
-        }
-
-        let uploadData;
-        try {
-          uploadData = await uploadResponse.json();
-        } catch (parseError) {
-          console.error("Failed to parse upload response as JSON:", parseError);
-          throw parseError;
-        }
-
-        console.log("LOG: Uploaded sketch file:", uploadData);
-
-        const bodySketch = JSON.stringify({
-          prompt: auxPrompt,
-          sketchPath: uploadData.filepath,
-        });
-
-        try {
-          response = await fetch("/api/sketch-to-img", {
+        console.log("prompt", prompt);
+        response = await fetch(
+          "http://localhost:3000/images/txt2shirt/preview",
+          {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: bodySketch,
-          });
-        } catch (fetchError) {
-          console.error("Sketch-to-img request failed:", fetchError);
-          throw fetchError;
-        }
+            body: JSON.stringify({ prompt }),
+          }
+        );
+        console.log("response", response._id);
+      } else if (option === "sketch") {
+        //todo: handle sketch upload
       }
 
       if (!response.ok) {
@@ -89,7 +47,8 @@ const ArtGenerator = () => {
       const data = await response.json();
 
       setLatestDesign({
-        image: data.artifacts[0].base64, // Assuming backend returns this key
+        //backend return base64 image on success {previewImg: base64}
+        image: data.previewImg,
       });
     } catch (error) {
       console.error("Failed to create or fetch designs", error);
