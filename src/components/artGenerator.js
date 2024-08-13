@@ -71,6 +71,7 @@ const ArtGenerator = () => {
       return;
     }
 
+    setIsModalOpen(true); // Open modal during payment processing
     setPaymentLoading(true); // Show loading screen during payment processing
 
     try {
@@ -125,8 +126,11 @@ const ArtGenerator = () => {
   );
 
   const PaymentLoadingPlaceholder = () => (
-    <div className="animate-pulse flex flex-col items-center justify-center h-40 w-full blue-glassmorphism rounded-lg">
-      <div className="text-lg text-gray-500">Processing payment...</div>
+    <div className="flex flex-col items-center justify-center text-center h-40 w-full space-y-4">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-300"></div>
+      <div className="text-lg text-gray-700">
+        Crafting your stamp... <br /> Robots are doing their jobs...
+      </div>
     </div>
   );
 
@@ -140,11 +144,11 @@ const ArtGenerator = () => {
     <div className="flex flex-col sm:min-w-[700px] items-center justify-center sm:px-5 px-2">
       <div className="blue-glassmorphism rounded-3xl shadow-md shadow-secondary border border-base-300 flex flex-col p-5 w-full">
         <div className="flex flex-col gap-3 py-5 first:pt-0 last:pb-1">
-          <p className="font-medium my-0 break-words text-white">
-            AI Art Generator
-          </p>
+          {/* <p className="font-medium my-0 break-words text-white">
+            Generate your design!
+          </p> */}
           <div className="flex justify-center gap-4 mb-4">
-            <button
+            {/* <button
               onClick={() => handleOptionChange("text")}
               className={`px-4 py-2 rounded-full ${
                 option === "text"
@@ -153,8 +157,8 @@ const ArtGenerator = () => {
               } transition duration-200`}
             >
               Create from Text
-            </button>
-            <button
+            </button> */}
+            {/* <button
               onClick={() => handleOptionChange("sketch")}
               className={`px-4 py-2 rounded-full ${
                 option === "sketch"
@@ -163,7 +167,7 @@ const ArtGenerator = () => {
               } transition duration-200`}
             >
               Create from Sketch
-            </button>
+            </button> */}
           </div>
           {option === "text" ? (
             <div className="flex flex-row items-center gap-1.5 w-full">
@@ -250,7 +254,7 @@ const ArtGenerator = () => {
       {/* Modal for payment loading */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 w-full max-w-md">
+          <div className="bg-white rounded-lg p-8 w-full max-w-md text-center">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               Processing Payment
             </h2>
