@@ -14,7 +14,6 @@ const ArtGenerator = () => {
   const [latestDesign, setLatestDesign] = useState(null);
   const [imageId, setImageId] = useState(null); // State to hold the image ID
   const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
-  const [email, setEmail] = useState(""); // State for storing user email
   const [paymentLoading, setPaymentLoading] = useState(false); // State for payment loading
 
   const router = useRouter(); // Initialize useRouter
@@ -67,8 +66,8 @@ const ArtGenerator = () => {
   };
 
   const handlePayment = async () => {
-    if (!imageId || !email) {
-      console.error("No image ID or email found, cannot proceed with payment.");
+    if (!imageId) {
+      console.error("No image ID found, cannot proceed with payment.");
       return;
     }
 
@@ -230,13 +229,17 @@ const ArtGenerator = () => {
                   />
                 </figure>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(true)} // Open modal on button click
-                className="mt-4 bg-blue-500 text-white px-4 py-2 text-lg rounded-full hover:bg-blue-600 transition duration-200 mb-6" // Adjusted margin-bottom
-              >
-                Buy Design
-              </button>
+              {paymentLoading ? (
+                <PaymentLoadingPlaceholder />
+              ) : (
+                <button
+                  type="button"
+                  onClick={handlePayment}
+                  className="mt-4 bg-blue-500 text-white px-4 py-2 text-lg rounded-full hover:bg-blue-600 transition duration-200 mb-6" // Adjusted margin-bottom
+                >
+                  Buy Design
+                </button>
+              )}
             </div>
           ) : (
             <div className="text-white">No art generated yet.</div>
@@ -244,40 +247,14 @@ const ArtGenerator = () => {
         </div>
       )}
 
-      {/* Modal for email input and payment loading */}
+      {/* Modal for payment loading */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 w-full max-w-md">
-            {paymentLoading ? (
-              <PaymentLoadingPlaceholder />
-            ) : (
-              <>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                  Enter your email to proceed
-                </h2>
-                <input
-                  type="email"
-                  className="border border-gray-300 rounded-lg p-2 w-full mb-4"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => setIsModalOpen(false)} // Close modal on cancel
-                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handlePayment}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200"
-                  >
-                    Proceed to Payment
-                  </button>
-                </div>
-              </>
-            )}
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Processing Payment
+            </h2>
+            <PaymentLoadingPlaceholder />
           </div>
         </div>
       )}

@@ -1,10 +1,48 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 
 const SuccessPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState(null);
+
+  const externalReference = searchParams.get("external_reference");
+
+  console.log("externalReference", externalReference);
+
+  useEffect(() => {
+    const fetchEmail = async () => {
+      if (externalReference) {
+        try {
+          const response = await fetch(
+            `http://localhost:3000/images/${externalReference}`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+
+          console.log("response", response);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Fetched Data:", data); // Log the data to inspect its structure
+            console.log("Payment Email:", data.paymentEmail);
+            setEmail(data.paymentEmail);
+          } else {
+            console.error("Failed to fetch payment details.");
+          }
+        } catch (error) {
+          console.error("Error fetching payment details:", error);
+        }
+      }
+    };
+
+    fetchEmail();
+  }, [externalReference]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 to-gray-800">
@@ -15,8 +53,9 @@ const SuccessPage = () => {
             Purchase Successful!
           </h1>
           <p className="text-center text-gray-400 mb-6">
-            Thank you for your purchase. Your image has been sent to your email
-            and should arrive in a few minutes. Please check your inbox.
+            {email
+              ? `Thank you for your purchase. Your image has been sent to ${email} and should arrive in a few minutes. Please check your inbox.`
+              : "Thank you for your purchase. Your image is being processed."}
           </p>
           <button
             onClick={() => router.push("/")}
