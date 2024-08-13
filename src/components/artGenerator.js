@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // Correct import for Next.js 13+
 
 const ArtGenerator = () => {
   const [option, setOption] = useState("text"); // "text" or "sketch"
@@ -9,6 +12,12 @@ const ArtGenerator = () => {
   const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(false);
   const [latestDesign, setLatestDesign] = useState(null);
+  const [imageId, setImageId] = useState(null); // State to hold the image ID
+  const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
+  const [email, setEmail] = useState(""); // State for storing user email
+  const [paymentLoading, setPaymentLoading] = useState(false); // State for payment loading
+
+  const router = useRouter(); // Initialize useRouter
 
   const handleOptionChange = (newOption) => {
     setOption(newOption);
@@ -26,7 +35,6 @@ const ArtGenerator = () => {
       let response;
 
       if (option === "text") {
-        console.log("prompt", prompt);
         response = await fetch(
           "http://localhost:3000/images/txt2shirt/preview",
           {
@@ -35,9 +43,8 @@ const ArtGenerator = () => {
             body: JSON.stringify({ prompt }),
           }
         );
-        console.log("response", response._id);
       } else if (option === "sketch") {
-        //todo: handle sketch upload
+        // Handle sketch upload
       }
 
       if (!response.ok) {
@@ -47,9 +54,11 @@ const ArtGenerator = () => {
       const data = await response.json();
 
       setLatestDesign({
-        //backend return base64 image on success {previewImg: base64}
         image: data.previewImg,
       });
+
+      // Save the image ID
+      setImageId(data.id);
     } catch (error) {
       console.error("Failed to create or fetch designs", error);
     }
@@ -57,9 +66,68 @@ const ArtGenerator = () => {
     setLoading(false);
   };
 
+  const handlePayment = async () => {
+    if (!imageId || !email) {
+      console.error("No image ID or email found, cannot proceed with payment.");
+      return;
+    }
+
+    setPaymentLoading(true); // Show loading screen during payment processing
+
+    try {
+      const stampResponse = await fetch(
+        `http://localhost:3000/images/txt2shirt/stamp/${imageId}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!stampResponse.ok) {
+        throw new Error("Failed to create stamp");
+      }
+
+      const paymentData = {
+        itemTitle: "Design The Prism",
+        itemPrice: 3,
+        backUrlSuccess: "http://localhost:3001/success",
+        externalReference: imageId,
+        notificationUrl:
+          "https://ed0e-2804-1b3-a300-2aa8-9020-4a3f-9916-de4e.ngrok-free.app/payments/notification",
+      };
+
+      const response = await fetch(
+        `http://localhost:3000/payments/image/${imageId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(paymentData),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create payment");
+      }
+
+      const data = await response.json();
+      window.location.href = data.init_point; // Redirect to payment page
+      console.log("ART GENERATOR: Payment data:", data);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+    } finally {
+      setPaymentLoading(false); // Hide loading screen after payment processing
+      setIsModalOpen(false); // Close modal after payment processing
+    }
+  };
+
   const LoadingPlaceholder = () => (
     <div className="animate-pulse flex flex-col items-center justify-center h-40 w-full blue-glassmorphism rounded-lg">
       <div className="text-lg text-gray-500">Your art is being created...</div>
+    </div>
+  );
+
+  const PaymentLoadingPlaceholder = () => (
+    <div className="animate-pulse flex flex-col items-center justify-center h-40 w-full blue-glassmorphism rounded-lg">
+      <div className="text-lg text-gray-500">Processing payment...</div>
     </div>
   );
 
@@ -162,10 +230,55 @@ const ArtGenerator = () => {
                   />
                 </figure>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(true)} // Open modal on button click
+                className="mt-4 bg-blue-500 text-white px-4 py-2 text-lg rounded-full hover:bg-blue-600 transition duration-200 mb-6" // Adjusted margin-bottom
+              >
+                Buy Design
+              </button>
             </div>
           ) : (
             <div className="text-white">No art generated yet.</div>
           )}
+        </div>
+      )}
+
+      {/* Modal for email input and payment loading */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 w-full max-w-md">
+            {paymentLoading ? (
+              <PaymentLoadingPlaceholder />
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                  Enter your email to proceed
+                </h2>
+                <input
+                  type="email"
+                  className="border border-gray-300 rounded-lg p-2 w-full mb-4"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setIsModalOpen(false)} // Close modal on cancel
+                    className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePayment}
+                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition duration-200"
+                  >
+                    Proceed to Payment
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
