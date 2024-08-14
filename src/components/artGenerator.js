@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { useRouter } from "next/navigation"; // Correct import for Next.js 13+
 
 const ArtGenerator = () => {
   const [option, setOption] = useState("text"); // "text" or "sketch"
@@ -16,15 +15,13 @@ const ArtGenerator = () => {
   const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
   const [paymentLoading, setPaymentLoading] = useState(false); // State for payment loading
 
-  const router = useRouter(); // Initialize useRouter
-
-  const handleOptionChange = (newOption) => {
-    setOption(newOption);
-    setPrompt("");
-    setAuxPrompt("");
-    setSketch(null);
-    setShowResult(false);
-  };
+  // const handleOptionChange = (newOption) => {
+  //   setOption(newOption);
+  //   setPrompt("");
+  //   setAuxPrompt("");
+  //   setSketch(null);
+  //   setShowResult(false);
+  // };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -35,7 +32,7 @@ const ArtGenerator = () => {
 
       if (option === "text") {
         response = await fetch(
-          "http://localhost:3000/images/txt2shirt/preview",
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/txt2shirt/preview`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -76,7 +73,7 @@ const ArtGenerator = () => {
 
     try {
       const stampResponse = await fetch(
-        `http://localhost:3000/images/txt2shirt/stamp/${imageId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/txt2shirt/stamp/${imageId}`,
         {
           method: "POST",
         }
@@ -88,15 +85,14 @@ const ArtGenerator = () => {
 
       const paymentData = {
         itemTitle: "Design The Prism",
-        itemPrice: 3,
-        backUrlSuccess: "http://localhost:3001/success",
+        itemPrice: 1,
+        backUrlSuccess: process.env.NEXT_PUBLIC_SUCCESS_FRONTEND_URL,
         externalReference: imageId,
-        notificationUrl:
-          "https://ed0e-2804-1b3-a300-2aa8-9020-4a3f-9916-de4e.ngrok-free.app/payments/notification",
+        notificationUrl: process.env.NEXT_PUBLIC_NOTIFICATION_URL,
       };
 
       const response = await fetch(
-        `http://localhost:3000/payments/image/${imageId}`,
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/payments/image/${imageId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

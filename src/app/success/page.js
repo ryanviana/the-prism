@@ -18,7 +18,7 @@ const SuccessPage = () => {
       if (externalReference) {
         try {
           const response = await fetch(
-            `http://localhost:3000/images/${externalReference}`,
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/${externalReference}`,
             {
               method: "GET",
               headers: { "Content-Type": "application/json" },
