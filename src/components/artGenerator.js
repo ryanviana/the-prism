@@ -78,7 +78,7 @@ const ArtGenerator = () => {
 
       const paymentData = {
         itemTitle: "Design The Prism",
-        itemPrice: 0.15,
+        itemPrice: 2.5,
         backUrlSuccess: process.env.NEXT_PUBLIC_SUCCESS_FRONTEND_URL,
         externalReference: imageId,
         notificationUrl: process.env.NEXT_PUBLIC_NOTIFICATION_URL,
