@@ -1,7 +1,7 @@
 "use client";
 
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
 import { AiOutlineCheckCircle } from "react-icons/ai";
 
 const SuccessPage = () => {
@@ -10,8 +10,6 @@ const SuccessPage = () => {
   const [email, setEmail] = useState(null);
 
   const externalReference = searchParams.get("external_reference");
-
-  console.log("externalReference", externalReference);
 
   useEffect(() => {
     const fetchEmail = async () => {
@@ -25,12 +23,8 @@ const SuccessPage = () => {
             }
           );
 
-          console.log("response", response);
-
           if (response.ok) {
             const data = await response.json();
-            console.log("Fetched Data:", data); // Log the data to inspect its structure
-            console.log("Payment Email:", data.paymentEmail);
             setEmail(data.paymentEmail);
           } else {
             console.error("Failed to fetch payment details.");
@@ -69,4 +63,10 @@ const SuccessPage = () => {
   );
 };
 
-export default SuccessPage;
+export default function SuspendedSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SuccessPage />
+    </Suspense>
+  );
+}
