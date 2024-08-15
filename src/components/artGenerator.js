@@ -14,14 +14,7 @@ const ArtGenerator = () => {
   const [imageId, setImageId] = useState(null); // State to hold the image ID
   const [isModalOpen, setIsModalOpen] = useState(false); // State to manage modal visibility
   const [paymentLoading, setPaymentLoading] = useState(false); // State for payment loading
-
-  // const handleOptionChange = (newOption) => {
-  //   setOption(newOption);
-  //   setPrompt("");
-  //   setAuxPrompt("");
-  //   setSketch(null);
-  //   setShowResult(false);
-  // };
+  const [email, setEmail] = useState(""); // State to hold the user's email
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -63,8 +56,8 @@ const ArtGenerator = () => {
   };
 
   const handlePayment = async () => {
-    if (!imageId) {
-      console.error("No image ID found, cannot proceed with payment.");
+    if (!imageId || !email) {
+      console.error("No image ID or email found, cannot proceed with payment.");
       return;
     }
 
@@ -85,10 +78,11 @@ const ArtGenerator = () => {
 
       const paymentData = {
         itemTitle: "Design The Prism",
-        itemPrice: 1,
+        itemPrice: 0.15,
         backUrlSuccess: process.env.NEXT_PUBLIC_SUCCESS_FRONTEND_URL,
         externalReference: imageId,
         notificationUrl: process.env.NEXT_PUBLIC_NOTIFICATION_URL,
+        payerEmail: email, // Pass the user's email
       };
 
       const response = await fetch(
@@ -105,8 +99,38 @@ const ArtGenerator = () => {
       }
 
       const data = await response.json();
-      window.location.href = data.init_point; // Redirect to payment page
-      console.log("ART GENERATOR: Payment data:", data);
+
+      // Open payment page in a new tab
+      const paymentTab = window.open(data.init_point, "_blank");
+
+      // Poll the payment status every 5 seconds
+      const paymentCheckInterval = setInterval(async () => {
+        try {
+          const paymentInfoResponse = await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/${imageId}/paymentInfo`,
+            {
+              method: "GET",
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+
+          if (paymentInfoResponse.ok) {
+            const paymentInfo = await paymentInfoResponse.json();
+
+            if (paymentInfo.paymentStatus === "APPROVED") {
+              clearInterval(paymentCheckInterval); // Stop polling
+              if (paymentTab) {
+                paymentTab.close(); // Close the payment tab
+              }
+              window.location.href = "/success"; // Redirect to success page
+            }
+          } else {
+            console.error("Failed to fetch payment status.");
+          }
+        } catch (error) {
+          console.error("Error fetching payment status:", error);
+        }
+      }, 5000); // Poll every 5 seconds
     } catch (error) {
       console.error("Error creating payment:", error);
     } finally {
@@ -136,35 +160,19 @@ const ArtGenerator = () => {
     setShowResult(false);
   };
 
+  const handleModalSubmit = () => {
+    if (email) {
+      handlePayment(); // Proceed with payment once the email is entered
+    } else {
+      alert("Please enter your email.");
+    }
+  };
+
   return (
     <div className="flex flex-col sm:min-w-[700px] items-center justify-center sm:px-5 px-2">
       <div className="blue-glassmorphism rounded-3xl shadow-md shadow-secondary border border-base-300 flex flex-col p-5 w-full">
         <div className="flex flex-col gap-3 py-5 first:pt-0 last:pb-1">
-          {/* <p className="font-medium my-0 break-words text-white">
-            Generate your design!
-          </p> */}
-          <div className="flex justify-center gap-4 mb-4">
-            {/* <button
-              onClick={() => handleOptionChange("text")}
-              className={`px-4 py-2 rounded-full ${
-                option === "text"
-                  ? "bg-blue-300 text-white"
-                  : "bg-transparent border border-blue-300 text-blue-300"
-              } transition duration-200`}
-            >
-              Create from Text
-            </button> */}
-            {/* <button
-              onClick={() => handleOptionChange("sketch")}
-              className={`px-4 py-2 rounded-full ${
-                option === "sketch"
-                  ? "bg-blue-300 text-white"
-                  : "bg-transparent border border-blue-300 text-blue-300"
-              } transition duration-200`}
-            >
-              Create from Sketch
-            </button> */}
-          </div>
+          <div className="flex justify-center gap-4 mb-4"></div>
           {option === "text" ? (
             <div className="flex flex-row items-center gap-1.5 w-full">
               <div className="flex border-2 border-base-300 blue-glassmorphism rounded-full w-full">
@@ -234,8 +242,8 @@ const ArtGenerator = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={handlePayment}
-                  className="mt-4 bg-blue-500 text-white px-4 py-2 text-lg rounded-full hover:bg-blue-600 transition duration-200 mb-6" // Adjusted margin-bottom
+                  onClick={() => setIsModalOpen(true)} // Open modal to ask for email
+                  className="mt-4 bg-blue-500 text-white px-4 py-2 text-lg rounded-full hover:bg-blue-600 transition duration-200 mb-6"
                 >
                   Buy Design
                 </button>
@@ -247,14 +255,37 @@ const ArtGenerator = () => {
         </div>
       )}
 
-      {/* Modal for payment loading */}
+      {/* Modal for email input and payment loading */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 w-full max-w-md text-center">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Processing Payment
-            </h2>
-            <PaymentLoadingPlaceholder />
+            {!paymentLoading ? (
+              <>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                  Enter Your Email
+                </h2>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-4 py-2 w-full mb-4"
+                  placeholder="Enter your email"
+                />
+                <button
+                  onClick={handleModalSubmit}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition duration-200"
+                >
+                  Proceed with Payment
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                  Processing Payment
+                </h2>
+                <PaymentLoadingPlaceholder />
+              </>
+            )}
           </div>
         </div>
       )}
