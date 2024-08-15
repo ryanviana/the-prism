@@ -12,7 +12,6 @@ const SuccessPage = () => {
   const externalReference = searchParams.get("external_reference");
 
   useEffect(() => {
-    //deploy
     const fetchEmail = async () => {
       if (externalReference) {
         try {
