@@ -103,34 +103,37 @@ const ArtGenerator = () => {
       // Open payment page in a new tab
       const paymentTab = window.open(data.init_point, "_blank");
 
-      // Poll the payment status every 5 seconds
-      const paymentCheckInterval = setInterval(async () => {
-        try {
-          const paymentInfoResponse = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/${imageId}/paymentInfo`,
-            {
-              method: "GET",
-              headers: { "Content-Type": "application/json" },
-            }
-          );
-
-          if (paymentInfoResponse.ok) {
-            const paymentInfo = await paymentInfoResponse.json();
-
-            if (paymentInfo.paymentStatus === "APPROVED") {
-              clearInterval(paymentCheckInterval); // Stop polling
-              if (paymentTab) {
-                paymentTab.close(); // Close the payment tab
+      if (paymentTab) {
+        // Poll the payment status every 5 seconds
+        const paymentCheckInterval = setInterval(async () => {
+          try {
+            const paymentInfoResponse = await fetch(
+              `${process.env.NEXT_PUBLIC_BACKEND_URL}/images/${imageId}/paymentInfo`,
+              {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
               }
-              window.location.href = "/success"; // Redirect to success page
+            );
+
+            if (paymentInfoResponse.ok) {
+              const paymentInfo = await paymentInfoResponse.json();
+
+              if (paymentInfo.paymentStatus === "APPROVED") {
+                clearInterval(paymentCheckInterval); // Stop polling
+                paymentTab.close(); // Close the payment tab
+                window.location.href = "/success"; // Redirect to success page
+              }
+            } else {
+              console.error("Failed to fetch payment status.");
             }
-          } else {
-            console.error("Failed to fetch payment status.");
+          } catch (error) {
+            console.error("Error fetching payment status:", error);
           }
-        } catch (error) {
-          console.error("Error fetching payment status:", error);
-        }
-      }, 5000); // Poll every 5 seconds
+        }, 5000); // Poll every 5 seconds
+      } else {
+        // Fallback: redirect in the same tab if the new tab couldn't be opened
+        window.location.href = data.init_point;
+      }
     } catch (error) {
       console.error("Error creating payment:", error);
     } finally {
